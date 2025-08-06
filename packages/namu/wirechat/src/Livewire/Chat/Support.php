@@ -1,0 +1,59 @@
+<?php
+
+namespace Namu\WireChat\Livewire\Chat;
+
+use App\Models\User;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+use Namu\WireChat\Models\Conversation;
+
+class Support extends Component
+{
+    public $conversation_id;
+
+    public $conversation;
+
+    public function mount()
+    {
+        ///make sure user is authenticated
+        abort_unless(auth()->check(), 401);
+
+        $admin = User::where('role', 'admin')->first();
+        $adminConverstaion = auth()->user()->createConversationWith($admin);
+
+        //We remove deleted conversation incase the user decides to visit the delted conversation
+        $this->conversation = Conversation::where('id', $adminConverstaion->id)->firstOrFail();
+        $this->conversation_id = $adminConverstaion->id;
+
+        // Check if the user belongs to the conversation
+        abort_unless(auth()->user()->belongsToConversation($this->conversation), 403);
+
+    }
+
+    #[Layout('wirechat::layouts.app')]
+    #[Title('Chats')]
+    public function render()
+    {
+
+        return <<<'BLADE'
+              <div class="w-full h-[calc(100vh_-_0.0rem)]  flex rounded-lg" >
+                  <div class=" hidden md:grid bg-inherit  dark:bg-inherit  relative w-full h-full md:w-[360px] lg:w-[400px] xl:w-[500px]  shrink-0 overflow-y-auto" @if(auth()->user()->role == 'user') style="display: none !important" @endif>
+
+
+                     <livewire:chats/>
+
+                  </div>
+
+                  <main  class="  grid  w-full  grow  h-full relative overflow-y-auto"  style="contain:content">
+
+
+                    <livewire:chat  conversation="{{$conversation_id}}"/>
+
+                  </main>
+
+
+              </div>
+      BLADE;
+    }
+}
